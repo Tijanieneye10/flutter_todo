@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:todo_app/no_glow_behaviour.dart';
 import 'package:todo_app/screen/taskpage.dart';
+import 'package:todo_app/database_helper.dart';
 import 'package:todo_app/widget.dart';
+import 'package:todo_app/models/task.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -9,7 +11,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+
+
   @override
+
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
@@ -32,28 +37,34 @@ class _HomePageState extends State<HomePage> {
                         width: 100),
                   ),
                   Expanded(
-                    child: ScrollConfiguration(
-                      behavior: NoGlowBehaviour(),
-                      child: ListView(
-                        children: <Widget>[
-                          TaskCard(
-                            desc:
-                                'Hello user! Welcome to TODO app, this is a default task that you can edit or delete to start using the app',
-                            title: 'Get Started',
-                          ),
-                          TaskCard(
-                            desc:
-                                'Hello user! Welcome to TODO app, this is a default task that you can edit or delete to start using the app',
-                            title: 'What to do',
-                          ),
-                          TaskCard(
-                            desc:
-                                'Hello user! Welcome to TODO app, this is a default task that you can edit or delete to start using the app',
-                            title: 'What to do',
-                          ),
-                        ],
+                      child: FutureBuilder(
+                        future: DatabaseHelper.instance.getTasks(),
+                        builder: (BuildContext context, AsyncSnapshot<List<Task>> snapshot){
+                          if(!snapshot.hasData){
+                            return Center(child: Text('Loading..'),);
+                          }
+                          return ScrollConfiguration(
+                            behavior: NoGlowBehaviour(),
+                            child: ListView.builder(
+                              itemCount: snapshot.data!.length,
+                              itemBuilder: (context, index){
+                                return GestureDetector(
+                                  onTap: (){
+                                   Navigator.push(context, MaterialPageRoute(
+                                     builder: (context) => TaskPage(task: snapshot.data![index])
+                                   ),).then((value) => setState((){}));
+                                  },
+                                  child: TaskCard(
+                                    title: snapshot.data![index].title,
+                                    desc: snapshot.data![index].desc,
+                                  ),
+                                );
+                              }
+
+                            ),
+                          );
+                        },
                       ),
-                    ),
                   ),
                 ],
               ),
@@ -65,9 +76,10 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TaskPage(),
-                      ),
-                    );
+                        builder: (context) => TaskPage(task: null),),
+                    ).then((value){
+                      setState(() {});
+                    });
                   },
                   child: Container(
                     width: 60.0,

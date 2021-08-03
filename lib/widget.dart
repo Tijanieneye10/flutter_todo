@@ -2,10 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class TaskCard extends StatelessWidget {
-  final String title;
-  final String desc;
+  final String? title;
+  final String? desc;
 
-  TaskCard({ required this.title, required this.desc});
+  TaskCard({ this.title, this.desc});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -24,7 +24,7 @@ class TaskCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            title ?? "No Title",
             style: TextStyle(
               fontSize: 22.0,
               color: Color(0xFF211551),
@@ -34,7 +34,7 @@ class TaskCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 15.0),
             child: Text(
-              desc,
+              desc ?? "No description",
               style: TextStyle(
                 fontSize: 16.0,
                 color: Color(0xFF86829D),
