@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animations/loading_animations.dart';
 import 'package:todo_app/database_helper.dart';
 import 'package:todo_app/models/task.dart';
 import 'package:todo_app/models/todo.dart';
@@ -6,7 +7,9 @@ import 'package:todo_app/task_widget.dart';
 
 class TaskPage extends StatefulWidget {
   final Task? task;
+
   TaskPage({this.task});
+
   @override
   _TaskPageState createState() => _TaskPageState();
 }
@@ -82,21 +85,29 @@ class _TaskPageState extends State<TaskPage> {
                         Expanded(
                           child: TextField(
                             focusNode: _titleFocus,
+                            autofocus: widget.task != null ? false : true,
                             onSubmitted: (value) async {
                               if (value != "") {
                                 if (widget.task == null) {
-                                   taskId = await DatabaseHelper.instance.add(
+                                  taskId = await DatabaseHelper.instance.add(
                                     Task(title: value, desc: "No description"),
                                   );
+                                  print(taskId);
                                   // Let update the state
                                   setState(() {
                                     _contentVisibility = true;
                                     taskTitle = value;
                                   });
-                                  print('Task send successfully');
+                                  buildShowSnackBar(
+                                      context, "Task added succesfully");
                                 } else {
-                                  taskId = await DatabaseHelper.instance.updateTask(
-                                      Task(id: widget.task!.id, title: value, desc: "hello"),);
+                                  taskId =
+                                  await DatabaseHelper.instance.updateTask(
+                                    Task(
+                                        id: widget.task!.id,
+                                        title: value,
+                                        desc: "hello"),
+                                  );
                                   setState(() {
                                     _contentVisibility = true;
                                     taskTitle = value;
@@ -122,7 +133,7 @@ class _TaskPageState extends State<TaskPage> {
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(bottom: 12.0),
+                    padding: EdgeInsets.only(bottom: 2.0),
                     child: Visibility(
                         visible: _contentVisibility,
                         child: descriptionTextField(taskDesc)),
@@ -136,7 +147,14 @@ class _TaskPageState extends State<TaskPage> {
                             AsyncSnapshot<List<Todo>> snapshot) {
                           if (!snapshot.hasData) {
                             return Center(
-                              child: Text('Loading..'),
+                              child: Container(
+                                color: Colors.transparent,
+                                child: LoadingBouncingGrid.square(
+                                  borderColor: Colors.white,
+                                  backgroundColor: Colors.indigo,
+                                  size: 70.0,
+                                ),
+                              ),
                             );
                           }
                           return ListView.builder(
@@ -144,19 +162,97 @@ class _TaskPageState extends State<TaskPage> {
                               itemBuilder: (context, index) {
                                 return GestureDetector(
                                   onTap: () async {
-                                    if(snapshot.data![index].isDone == 0){
-                                      await DatabaseHelper.instance.updateTodo(snapshot.data![index].id, 1);
-                                    } else{
-                                      await DatabaseHelper.instance.updateTodo(snapshot.data![index].id, 0);
+                                    if (snapshot.data![index].isDone == 0) {
+                                      await DatabaseHelper.instance
+                                          .updateTodo(
+                                          snapshot.data![index].id, 1);
+                                    } else {
+                                      await DatabaseHelper.instance
+                                          .updateTodo(
+                                          snapshot.data![index].id, 0);
                                     }
                                     setState(() {
                                       _contentVisibility = true;
                                     });
-
                                   },
-                                  child: ViewTasks(
-                                    isDone: snapshot.data![index].isDone,
-                                    title: snapshot.data![index].title,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 10.0),
+                                    child: Dismissible(
+                                      key: Key(UniqueKey().toString()),
+                                      background: Container(color: Colors.grey),
+                                      direction: DismissDirection.endToStart,
+                                      onDismissed: (direction) {
+                                        
+                                        DatabaseHelper.instance.deleteTodo(
+                                            snapshot.data![index].id);
+
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            backgroundColor: Colors.red,
+                                            content: Row(
+                                              children: <Widget>[
+                                                Text("Todo deleted"),
+                                              ],
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius
+                                                  .circular(10),
+                                            ),
+                                          ),
+                                        );
+                                        setState(() {
+                                          snapshot.data!.removeAt(index);
+                                        });
+                                      },
+                                      child: Card(
+                                        margin: EdgeInsets.symmetric(
+                                            vertical: 5.0, horizontal: 15.0),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 20.0, horizontal: 15.0),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment
+                                                .center,
+                                            children: <Widget>[
+                                              Container(
+                                                width: 20.0,
+                                                height: 20.0,
+                                                margin: EdgeInsets.only(
+                                                  right: 12.0,
+                                                  // bottom: 4.0,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                  snapshot.data![index].isDone
+                                                  == 1 ? Colors.blue : Colors.transparent,
+                                                  borderRadius: BorderRadius
+                                                      .circular(6.0),
+                                                  border: Border.all(
+                                                    color: Color(0xFF86829D),
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                child: Image(
+                                                  image: AssetImage(
+                                                      "assets/images/check_icon.png"),
+                                                ),
+                                              ),
+                                              Flexible(
+                                                flex: 1,
+                                                child: Text(
+                                                  snapshot.data![index].title,
+                                                  textAlign: TextAlign.justify,
+                                                  style: TextStyle(
+                                                      fontSize: 20),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 );
                               });
@@ -170,28 +266,11 @@ class _TaskPageState extends State<TaskPage> {
                       padding: EdgeInsets.symmetric(horizontal: 24.0),
                       child: Row(
                         children: [
-                          Container(
-                            width: 20.0,
-                            height: 20.0,
-                            margin: EdgeInsets.only(
-                              right: 12.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(6.0),
-                              border: Border.all(
-                                color: Color(0xFF86829D),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Image(
-                              image: AssetImage("assets/images/check_icon.png"),
-                            ),
-                          ),
                           Expanded(
                             child: TextField(
                               focusNode: _todoFocus,
-                              controller: TextEditingController()..text = "",
+                              controller: TextEditingController()
+                                ..text = "",
                               onSubmitted: (value) async {
                                 if (value != "") {
                                   if (taskId != 0) {
@@ -201,8 +280,8 @@ class _TaskPageState extends State<TaskPage> {
                                           isDone: 0,
                                           taskId: taskId),
                                     );
+                                    taskDesc = widget.task?.desc ?? taskDesc;
                                     setState(() {});
-                                    print('Task send successfully');
                                   } else {
                                     print("something is wrong");
                                   }
@@ -228,8 +307,9 @@ class _TaskPageState extends State<TaskPage> {
                 right: 24.0,
                 child: GestureDetector(
                   onTap: () async {
-                    if(taskId != 0){
-                      await DatabaseHelper.instance.deleteTaskandTodo(widget.task!.id);
+                    if (taskId != 0) {
+                      await DatabaseHelper.instance
+                          .deleteTaskandTodo(widget.task!.id);
                       Navigator.pop(context);
                     }
                   },
@@ -251,17 +331,31 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason> buildShowSnackBar(
+      BuildContext context, message) {
+    return ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.green,
+        content: Row(
+          children: <Widget>[
+            Text(message),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
   TextField descriptionTextField(String taskDesc) {
     return TextField(
       focusNode: _descriptionFocus,
       onSubmitted: (value) async {
-        if(value != null){
-          if(taskId != 0){
-            await DatabaseHelper.instance.updateTask(
-              Task(id: widget.task!.id, title: widget.task!.title, desc: value),);
-              taskDesc = value;
-          }
-        }
+        await DatabaseHelper.instance.updateDesc(taskId, value);
+        taskDesc = value;
+        print(taskId);
         _todoFocus.requestFocus();
       },
       decoration: InputDecoration(
@@ -271,59 +365,8 @@ class _TaskPageState extends State<TaskPage> {
           horizontal: 30.0,
         ),
       ),
-      // controller: TextEditingController()
-      //   ..text = taskDesc,
-    );
-  }
-}
-
-class ViewTasks extends StatefulWidget {
-  final int isDone;
-  final String title;
-
-  ViewTasks({required this.isDone, required this.title});
-
-  @override
-  _ViewTasksState createState() => _ViewTasksState();
-}
-
-class _ViewTasksState extends State<ViewTasks> {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Container(
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 20.0,
-              height: 20.0,
-              margin: EdgeInsets.only(
-                right: 12.0,
-                bottom: 4.0,
-              ),
-              decoration: BoxDecoration(
-                color: widget.isDone == 1 ? Colors.blue : Colors.transparent,
-                borderRadius: BorderRadius.circular(6.0),
-                border: Border.all(
-                  color: Color(0xFF86829D),
-                  width: 1.5,
-                ),
-              ),
-              child: Image(
-                image: AssetImage("assets/images/check_icon.png"),
-              ),
-            ),
-            Flexible(
-              flex: 1,
-              child: Text(
-                widget.title,
-                textAlign: TextAlign.justify,
-              ),
-            ),
-          ],
-        ),
-      ),
+      controller: TextEditingController()
+        ..text = widget.task?.desc ?? taskDesc,
     );
   }
 }

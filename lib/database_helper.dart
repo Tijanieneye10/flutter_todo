@@ -83,6 +83,11 @@ import 'models/todo.dart';
     return await db.update('tasks', task.toMap(), where: 'id = ?', whereArgs: [task.id]);
   }
 
+  Future<int> updateDesc(int? id, String desc) async{
+    Database db = await instance.database;
+    return await db.rawUpdate("UPDATE tasks SET desc = '$desc' WHERE id = '$id' ");
+  }
+
   Future<int> updateTodo(int? id, int isDone) async{
     Database db = await instance.database;
     return db.rawUpdate("UPDATE todos SET isDone = '$isDone' WHERE id = '$id' ");
@@ -92,6 +97,11 @@ import 'models/todo.dart';
     Database db = await instance.database;
     await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
     return db.delete('todos', where: 'taskId = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteTodo(int? id) async{
+    Database db = await instance.database;
+    return db.delete('todos', where: 'id = ?', whereArgs: [id]);
   }
 
 //  for Todo
